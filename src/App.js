@@ -161,7 +161,7 @@ const ClaimButton = styled.button`
 
 const CountContainer = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto auto auto 1fr;
+  grid-template-columns: 1fr auto 80px auto 1fr;
   margin-top: 28px;
   margin-bottom: 28px;
 `;
@@ -252,13 +252,31 @@ const App = () => {
 
   const connectCoinbaseWallet = useCallback(() => {}, [setAccount]);
 
+  const getBalances = useCallback(() => {
+    const { REACT_APP_API_URL: apiUrl } = process.env;
+    fetch(`${apiUrl}/accounts/${account}/balances`)
+      .then((res) => {
+        return res.json();
+      })
+      .then((json) => {
+        const {
+          data: { kidCount = 0, pupCount = 0 },
+        } = json;
+        const _eligibleCount = Math.min(kidCount, pupCount);
+        setEligibleCount(_eligibleCount);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, [account, setEligibleCount]);
+
   useEffect(() => {
     if (!account) {
       setEligibleCount(-1);
     } else {
-      setEligibleCount(9);
+      getBalances();
     }
-  }, [account, setEligibleCount]);
+  }, [account, setEligibleCount, getBalances]);
 
   useEffect(() => {
     if (eligibleCount > 0) setClaimCount(1);

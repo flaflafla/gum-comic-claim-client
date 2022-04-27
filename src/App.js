@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
+import ErrorModal from "./ErrorModal";
 import Web3 from "web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 
@@ -18,7 +19,7 @@ const TopBar = styled.div`
   grid-template-columns: 1fr auto 1fr;
   background-color: #ff74b4;
   padding: 0 40px;
-  width: calc(100% - 40px);
+  width: calc(100% - 80px);
 `;
 
 const Logo = styled.img`
@@ -205,6 +206,10 @@ const App = () => {
     setShowConnectWalletModal(false);
   }, [setShowConnectWalletModal]);
 
+  const closeErrorModal = useCallback(() => {
+    setError("");
+  }, [setError]);
+
   const connectMetaMask = useCallback(async () => {
     const { ethereum } = window;
     const metamaskIsInstalled = ethereum?.isMetaMask;
@@ -267,8 +272,11 @@ const App = () => {
       })
       .catch((err) => {
         console.error(err);
+        setError(
+          "Sorry, we weren't able to get information about your eligibility."
+        );
       });
-  }, [account, setEligibleCount]);
+  }, [account, setEligibleCount, setError]);
 
   useEffect(() => {
     if (!account) {
@@ -312,6 +320,7 @@ const App = () => {
           connectCoinbaseWallet={connectCoinbaseWallet}
         />
       )}
+      {error && <ErrorModal closeModal={closeErrorModal} error={error} />}
       <TopBar>
         <div />
         <a href="https://bubblegumkids.xyz/home">

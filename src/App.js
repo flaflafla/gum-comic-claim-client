@@ -320,8 +320,7 @@ const App = () => {
       </TopBar>
       <Container>
         <PreviewContainer>
-          <PreviewImage src="manatee.jpeg" alt="manatee" />
-          <PreviewImage src="manatee-2.jpeg" alt="manatee" />
+          <PreviewImage src="roadmap.png" alt="roadmap" />
         </PreviewContainer>
         <ClaimContainer>
           <Heading>CLAIM YOUR BUBBLEGUM COMIC</Heading>

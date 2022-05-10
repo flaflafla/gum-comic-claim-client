@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
+import ConfirmationModal from "./ConfirmationModal";
+import SuccessModal from "./SuccessModal";
 import ErrorModal from "./ErrorModal";
 import Web3 from "web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
+import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
 const Container = styled.div`
   display: grid;
@@ -193,10 +196,13 @@ const AddressInputContainer = styled.div`
 const App = () => {
   const [account, setAccount] = useState("");
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+  const [showConfirmOrderModal, setShowConfirmOrderModal] = useState(false);
   const [eligibleCount, setEligibleCount] = useState(-1);
   const [error, setError] = useState("");
   const [claimCount, setClaimCount] = useState(0);
   const [address, setAddress] = useState("");
+  const [alreadyOrderedCount, setAlreadyOrderedCount] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleConnectButtonClick = useCallback(() => {
     setShowConnectWalletModal(true);
@@ -209,6 +215,14 @@ const App = () => {
   const closeErrorModal = useCallback(() => {
     setError("");
   }, [setError]);
+
+  const closeConfirmationModal = useCallback(() => {
+    setShowConfirmOrderModal(false);
+  }, [setShowConfirmOrderModal]);
+
+  const closeSuccessModal = useCallback(() => {
+    setShowSuccessModal(false);
+  }, [setShowSuccessModal]);
 
   const connectMetaMask = useCallback(async () => {
     const { ethereum } = window;
@@ -245,17 +259,37 @@ const App = () => {
       setError("");
       setAccount(accounts[0]);
     });
-    const _web3 = new Web3(provider);
+    const web3 = new Web3(provider);
     try {
-      const accounts = await _web3.eth.getAccounts();
+      const accounts = await web3.eth.getAccounts();
       setAccount(accounts[0]);
     } catch (err) {
       console.error(err);
       setError("Sorry, something went wrong. Please check your wallet.");
     }
-  }, [setAccount]);
+  }, [setAccount, setError]);
 
-  const connectCoinbaseWallet = useCallback(() => {}, [setAccount]);
+  const connectCoinbaseWallet = useCallback(async () => {
+    const { REACT_APP_INFURA_ID } = process.env;
+    const coinbaseWallet = new CoinbaseWalletSDK({
+      appName: "Bubblegum Kids Comic",
+      appLogoUrl: "/bgk-logo.png",
+      darkMode: false,
+    });
+    const ethereum = coinbaseWallet.makeWeb3Provider(
+      `https://mainnet.infura.io/v3/${REACT_APP_INFURA_ID}`,
+      1
+    );
+    try {
+      const accounts = await ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      setAccount(accounts[0]);
+    } catch (err) {
+      console.error(err);
+      setError("Sorry, something went wrong. Please check your wallet.");
+    }
+  }, [setAccount, setError]);
 
   const getBalances = useCallback(() => {
     const { REACT_APP_API_URL: apiUrl } = process.env;
@@ -278,13 +312,35 @@ const App = () => {
       });
   }, [account, setEligibleCount, setError]);
 
+  const getOrders = useCallback(() => {
+    const { REACT_APP_API_URL: apiUrl } = process.env;
+    fetch(`${apiUrl}/orders/${account}`)
+      .then((res) => {
+        return res.json();
+      })
+      .then((json) => {
+        const { data } = json;
+        const totalCount = data.reduce((prev, cur) => {
+          const { count } = cur;
+          const newTotalCount = prev + count;
+          return newTotalCount;
+        }, 0);
+        setAlreadyOrderedCount(totalCount);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Sorry, we weren't able to get your previous orders.");
+      });
+  }, [account, setAlreadyOrderedCount, setError]);
+
   useEffect(() => {
     if (!account) {
       setEligibleCount(-1);
     } else {
       getBalances();
+      getOrders();
     }
-  }, [account, setEligibleCount, getBalances]);
+  }, [account, setEligibleCount, getBalances, getOrders]);
 
   useEffect(() => {
     if (eligibleCount > 0) setClaimCount(1);
@@ -296,11 +352,13 @@ const App = () => {
   }, [claimCount, setClaimCount]);
 
   const handlePlusButtonClick = useCallback(() => {
-    if (claimCount > eligibleCount - 1) return;
+    if (claimCount > eligibleCount - alreadyOrderedCount - 1) return;
     setClaimCount(claimCount + 1);
-  }, [claimCount, eligibleCount, setClaimCount]);
+  }, [claimCount, eligibleCount, alreadyOrderedCount, setClaimCount]);
 
-  const handleClaimButtonClick = useCallback(() => {}, []);
+  const handleClaimButtonClick = useCallback(() => {
+    setShowConfirmOrderModal(true);
+  }, [setShowConfirmOrderModal]);
 
   const handleAddressChange = useCallback(
     ({ target }) => {
@@ -309,6 +367,43 @@ const App = () => {
     },
     [setAddress]
   );
+
+  const handleClaim = useCallback(() => {
+    const { REACT_APP_API_URL: apiUrl } = process.env;
+    fetch(`${apiUrl}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        account,
+        deliveryAddress: address,
+        count: claimCount,
+        notes: "",
+      }),
+    })
+      .then((res) => {
+        return res.json();
+      })
+      .then((json) => {
+        if (json.data?.length) {
+          setShowConfirmOrderModal(false);
+          setShowSuccessModal(true);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Sorry, we weren't able to process your order.");
+      });
+  }, [
+    account,
+    claimCount,
+    address,
+    setShowSuccessModal,
+    setShowConfirmOrderModal,
+  ]);
+
+  const finalEligibleCount = eligibleCount - alreadyOrderedCount;
 
   return (
     <>
@@ -321,6 +416,15 @@ const App = () => {
         />
       )}
       {error && <ErrorModal closeModal={closeErrorModal} error={error} />}
+      {showConfirmOrderModal && (
+        <ConfirmationModal
+          count={claimCount}
+          address={address}
+          handleClaim={handleClaim}
+          closeModal={closeConfirmationModal}
+        />
+      )}
+      {showSuccessModal && <SuccessModal closeModal={closeSuccessModal} />}
       <TopBar>
         <div />
         <a href="https://bubblegumkids.xyz/home">
@@ -368,15 +472,15 @@ const App = () => {
               </a>
             </Account>
           )}
-          {eligibleCount === 0 && (
+          {finalEligibleCount === 0 && (
             <EligibleCount>
               Sorry, you're not eligible to claim any comics.
             </EligibleCount>
           )}
-          {eligibleCount > 0 && (
+          {finalEligibleCount > 0 && (
             <>
               <EligibleCount>
-                Congrats, you can claim up to {eligibleCount} comics!
+                Congrats, you can claim up to {finalEligibleCount} comics!
               </EligibleCount>
               <CountContainer>
                 <div />
@@ -389,7 +493,7 @@ const App = () => {
                 <ClaimCount>{claimCount}</ClaimCount>
                 <PlusMinusButton
                   onClick={handlePlusButtonClick}
-                  disabled={claimCount + 1 > eligibleCount}
+                  disabled={claimCount + 1 > finalEligibleCount}
                 >
                   +
                 </PlusMinusButton>
@@ -400,7 +504,7 @@ const App = () => {
               <AddressInputContainer>
                 <AddressInput
                   rows="5"
-                  placeholder="Where should we send it? (Full addresss please)"
+                  placeholder="Full delivery address"
                   value={address}
                   onChange={handleAddressChange}
                 />
@@ -415,18 +519,19 @@ const App = () => {
                   disabled={
                     !address.length ||
                     claimCount < 1 ||
-                    claimCount > eligibleCount
+                    claimCount > finalEligibleCount
                   }
                 >
                   <img
                     src={
                       !address.length ||
                       claimCount < 1 ||
-                      claimCount > eligibleCount
+                      claimCount > finalEligibleCount
                         ? "claim-disabled.png"
                         : "claim.png"
                     }
                     alt="claim button"
+                    id="claim-button"
                   />
                 </ClaimButton>
               </CenteredButtonContainer>

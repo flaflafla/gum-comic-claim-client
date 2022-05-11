@@ -241,7 +241,7 @@ const App = () => {
         setError("Sorry, something went wrong. Please check your wallet.");
       }
     } else {
-      setError("Please install MetaMask");
+      setError("Please install MetaMask.");
     }
   }, [setAccount, setError]);
 
@@ -438,7 +438,7 @@ const App = () => {
         <ClaimContainer>
           <Heading>CLAIM YOUR BUBBLEGUM COMIC</Heading>
           <Text>
-            Holders of Bugglegum Kids and Bubblegum Puppies are eligible to{" "}
+            Holders of Bubblegum Kids and Bubblegum Puppies are eligible to{" "}
             <b>claim free comic books.</b>
           </Text>
           <Text>
@@ -510,7 +510,7 @@ const App = () => {
                 />
               </AddressInputContainer>
               <Text>
-                Please include the full address, inlcuding street address,
+                Please include the full address, including street address,
                 flat/apartment number, city, postal code and country.
               </Text>
               <CenteredButtonContainer>

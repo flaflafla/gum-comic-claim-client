@@ -6,13 +6,19 @@ const Container = styled.div`
   top: 140px;
   padding: 40px;
   background-color: #ff74b4;
-  z-index: 1;
+  z-index: 2;
   width: 600px;
   left: calc(50% - 300px);
   border-radius: 24px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   grid-column-gap: 30px;
+
+  @media only screen and (max-width: 1000px) {
+    width: calc(100% - 160px);
+    left: 40px;
+    grid-template-columns: 1fr;
+  }
 `;
 
 const CloseButton = styled.div`
@@ -38,6 +44,17 @@ const ConnectButton = styled.button`
   img {
     width: 100px;
     margin: 0 auto;
+  }
+
+  @media only screen and (max-width: 1000px) {
+    margin-bottom: 32px;
+    grid-template-rows: 72px 32px;
+    padding: 16px 16px 8px 16px;
+
+    img {
+      width: 60px;
+      margin: 0 auto;
+    }
   }
 `;
 

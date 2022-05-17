@@ -13,6 +13,11 @@ const Container = styled.div`
   grid-template-columns: 1fr 1fr;
   width: calc(100% - 80px);
   padding: 0 40px;
+
+  @media only screen and (max-width: 1000px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
 `;
 
 const TopBar = styled.div`
@@ -32,10 +37,19 @@ const Logo = styled.img`
 
 const PreviewContainer = styled.div`
   padding: 40px 40px 40px 0;
+
+  @media only screen and (max-width: 1000px) {
+    grid-row: 2;
+    padding: 0 0 40px 0;
+  }
 `;
 
 const ClaimContainer = styled.div`
-  padding: 40px 40px 40px 0;
+  padding: 40px 0;
+
+  @media only screen and (max-width: 1000px) {
+    grid-row: 1;
+  }
 `;
 
 const PreviewImage = styled.img`
@@ -191,6 +205,13 @@ const AddressInput = styled.textarea`
 
 const AddressInputContainer = styled.div`
   text-align: center;
+`;
+
+const Overlay = styled.div`
+  z-index: 1;
+  position: absolute;
+  width: 100%;
+  height: 100%;
 `;
 
 const App = () => {
@@ -407,6 +428,10 @@ const App = () => {
 
   return (
     <>
+      {(showConnectWalletModal ||
+        error ||
+        showConfirmOrderModal ||
+        showSuccessModal) && <Overlay />}
       {showConnectWalletModal && (
         <ConnectWalletModal
           closeModal={closeModal}

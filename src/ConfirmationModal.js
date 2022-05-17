@@ -6,10 +6,15 @@ const Container = styled.div`
   top: 140px;
   padding: 40px;
   background-color: #ff74b4;
-  z-index: 1;
+  z-index: 2;
   width: 600px;
   left: calc(50% - 300px);
   border-radius: 24px;
+
+  @media only screen and (max-width: 1000px) {
+    width: calc(100% - 160px);
+    left: 40px;
+  }
 `;
 
 const CloseButton = styled.div`

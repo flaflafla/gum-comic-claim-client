@@ -114,6 +114,18 @@ const Account = styled.div`
     color: inherit;
     text-decoration: none;
   }
+
+  @media only screen and (max-width: 800px) {
+    width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 auto 26px auto;
+  }
+
+  @media only screen and (max-width: 560px) {
+    width: 200px;
+  }
 `;
 
 const EligibleCount = styled.div`

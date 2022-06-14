@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
-import { IPFS_PREFIX, KIDS_ADDRESS, OFFSET, PUPS_ADDRESS } from "./constants";
+import {
+  BLOCKS_PER_DAY,
+  IPFS_PREFIX,
+  KIDS_ADDRESS,
+  OFFSET,
+  PUPS_ADDRESS,
+} from "./constants";
 import {
   _connectMetaMask,
   _connectWalletConnect,
@@ -109,10 +115,14 @@ const Detail = ({ collectionAddress }) => {
   const [error, setError] = useState("");
   const [kidsSmartContract, setKidsSmartContract] = useState(null);
   const [pupsSmartContract, setPupsSmartContract] = useState(null);
-  const [stakingContract, setStakingContract] = useState(null);
+  const [stakingSmartContract, setStakingSmartContract] = useState(null);
   const [smartContract, setSmartContract] = useState(null);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [ownerOf, setOwnerOf] = useState("");
+  const [rewards, setRewards] = useState(0);
+  const [lockBlock, setLockBlock] = useState(null);
+  const [lockDuration, setLockDuration] = useState(-1);
+  const [lockDurationsConfig, setLockDurationDays] = useState(null);
 
   useEffect(() => {
     if (collectionAddress === KIDS_ADDRESS && kidsSmartContract) {
@@ -133,11 +143,74 @@ const Detail = ({ collectionAddress }) => {
     }
   }, [account, id, smartContract]);
 
+  useEffect(() => {
+    if (stakingSmartContract) {
+      getRewards();
+      getLockBlock();
+      getLockDurationByTokenId();
+    }
+  }, [stakingSmartContract]);
+
+  const getRewards = useCallback(async () => {
+    let bgContract = -1;
+    if (collectionAddress === KIDS_ADDRESS) {
+      bgContract = 0;
+    } else if (collectionAddress === PUPS_ADDRESS) {
+      bgContract = 1;
+    }
+    if (bgContract < 0) return;
+    const [rawRewards] = (await stakingSmartContract.methods
+      .calculateRewards(account, [parseInt(id)], [bgContract])
+      .call()) || [0];
+    const _rewards = parseInt(rawRewards) / 10 ** 18;
+    setRewards(_rewards);
+  }, [account, id, stakingSmartContract, setRewards]);
+
   const getOwnerOf = useCallback(async () => {
     const _ownerOf = await smartContract.methods.ownerOf(id).call();
-    console.log({ _ownerOf });
     setOwnerOf(_ownerOf);
   }, [account, smartContract, setOwnerOf]);
+
+  const getLockBlock = useCallback(async () => {
+    let bgContract = -1;
+    if (collectionAddress === KIDS_ADDRESS) {
+      bgContract = 0;
+    } else if (collectionAddress === PUPS_ADDRESS) {
+      bgContract = 1;
+    }
+    if (bgContract < 0) return;
+    const _lockBlock = await stakingSmartContract.methods
+      .lockBlocks(bgContract, parseInt(id))
+      .call();
+    setLockBlock(parseInt(_lockBlock));
+  }, [account, id, stakingSmartContract, setLockBlock]);
+
+  const getLockDurationByTokenId = useCallback(async () => {
+    let bgContract = -1;
+    if (collectionAddress === KIDS_ADDRESS) {
+      bgContract = 0;
+    } else if (collectionAddress === PUPS_ADDRESS) {
+      bgContract = 1;
+    }
+    if (bgContract < 0) return;
+    const _lockDuration = await stakingSmartContract.methods
+      .lockDurationsByTokenId(bgContract, parseInt(id))
+      .call();
+    setLockDuration(parseInt(_lockDuration));
+  }, [id, stakingSmartContract, setLockDuration]);
+
+  const getLockDurationDays = useCallback(async () => {
+    const _lockDurationDays = await stakingSmartContract.methods
+      .lockDurationsConfig(lockDuration)
+      .call();
+    setLockDurationDays(parseInt(_lockDurationDays));
+  }, [stakingSmartContract, setLockDurationDays, lockDuration]);
+
+  useEffect(() => {
+    if (lockDuration > -1) {
+      getLockDurationDays();
+    }
+  }, [lockDuration]);
 
   const connectMetaMask = useCallback(
     () =>
@@ -146,8 +219,16 @@ const Detail = ({ collectionAddress }) => {
         setError,
         setKidsSmartContract,
         setPupsSmartContract,
+        setStakingSmartContract,
+        setContracts: true,
       }),
-    [setAccount, setError, setKidsSmartContract, setPupsSmartContract]
+    [
+      setAccount,
+      setError,
+      setKidsSmartContract,
+      setPupsSmartContract,
+      setStakingSmartContract,
+    ]
   );
 
   const connectWalletConnect = useCallback(
@@ -157,8 +238,16 @@ const Detail = ({ collectionAddress }) => {
         setError,
         setKidsSmartContract,
         setPupsSmartContract,
+        setStakingSmartContract,
+        setContracts: true,
       }),
-    [setAccount, setError, setKidsSmartContract, setPupsSmartContract]
+    [
+      setAccount,
+      setError,
+      setKidsSmartContract,
+      setPupsSmartContract,
+      setStakingSmartContract,
+    ]
   );
 
   const connectCoinbaseWallet = useCallback(
@@ -168,8 +257,16 @@ const Detail = ({ collectionAddress }) => {
         setError,
         setKidsSmartContract,
         setPupsSmartContract,
+        setStakingSmartContract,
+        setContracts: true,
       }),
-    [setAccount, setError, setKidsSmartContract, setPupsSmartContract]
+    [
+      setAccount,
+      setError,
+      setKidsSmartContract,
+      setPupsSmartContract,
+      setStakingSmartContract,
+    ]
   );
 
   const handleConnectButtonClick = useCallback(() => {
@@ -183,7 +280,6 @@ const Detail = ({ collectionAddress }) => {
   // TODO
   const locked = true;
   const staked = true;
-  const unclaimedBalance = 100;
 
   const getLockInfo = useCallback(() => {
     if (locked) return "Locked until";
@@ -255,11 +351,11 @@ const Detail = ({ collectionAddress }) => {
                 <Info>{getLockInfo()}</Info>
               </DepositInfoContainer>
               <Info>{getBoostInfo()}</Info>
-              <Info>{unclaimedBalance}</Info>
+              {rewards > 0 && <Info>Unclaimed rewards: {rewards} GUM</Info>}
             </InnerInfoContainer>
           )}
           <ButtonContainer>
-            {staked && <Button>Claim Balance</Button>}
+            {rewards > 0 && <Button>Claim Balance</Button>}
           </ButtonContainer>
           <ButtonContainer>
             {locked && <Button>Extend Lock</Button>}

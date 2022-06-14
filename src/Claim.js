@@ -240,17 +240,29 @@ const Claim = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const connectMetaMask = useCallback(
-    () => _connectMetaMask({ setAccount, setError }),
+    () =>
+      _connectMetaMask({
+        setAccount,
+        setError,
+      }),
     [setAccount, setError]
   );
 
   const connectWalletConnect = useCallback(
-    () => _connectWalletConnect({ setAccount, setError }),
+    () =>
+      _connectWalletConnect({
+        setAccount,
+        setError,
+      }),
     [setAccount, setError]
   );
 
   const connectCoinbaseWallet = useCallback(
-    () => _connectCoinbaseWallet({ setAccount, setError }),
+    () =>
+      _connectCoinbaseWallet({
+        setAccount,
+        setError,
+      }),
     [setAccount, setError]
   );
 

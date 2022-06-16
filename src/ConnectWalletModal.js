@@ -111,19 +111,19 @@ const ConnectWalletModal = ({
       <CloseButton onClick={closeModal}>×</CloseButton>
       <Heading>Select Wallet</Heading>
       <ConnectButton onClick={() => handleWalletSelect(connectMetaMask)}>
-        <img src="metamask.svg" alt="metamask" style={{ marginTop: "4px" }} />
+        <img src="/metamask.svg" alt="metamask" style={{ marginTop: "4px" }} />
         <ButtonLabel>MetaMask</ButtonLabel>
       </ConnectButton>
       <ConnectButton onClick={() => handleWalletSelect(connectWalletConnect)}>
         <img
-          src="walletconnect.svg"
+          src="/walletconnect.svg"
           alt="walletconnect"
           style={{ marginTop: "15px" }}
         />
         <ButtonLabel>WalletConnect</ButtonLabel>
       </ConnectButton>
       <ConnectButton onClick={() => handleWalletSelect(connectCoinbaseWallet)}>
-        <img src="coinbase-wallet.png" alt="coinbase wallet" />
+        <img src="/coinbase-wallet.png" alt="coinbase wallet" />
         <ButtonLabel>Coinbase Wallet</ButtonLabel>
       </ConnectButton>
     </Container>

@@ -2,36 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
+import TopBar from "./TopBar";
 import {
   BLOCKS_PER_DAY,
   IPFS_PREFIX,
   KIDS_ADDRESS,
   OFFSET,
   PUPS_ADDRESS,
+  STAKING_ADDRESS,
 } from "./constants";
 import {
   _connectMetaMask,
   _connectWalletConnect,
   _connectCoinbaseWallet,
+  _getCurrentBlockNumber,
+  _getStakedByUser,
 } from "./utils";
-
-const ConnectButton = styled.button`
-  background-color: transparent;
-  border: none;
-  margin: 18px auto 0 auto;
-  cursor: pointer;
-
-  :hover {
-    margin-top: 17px;
-    img {
-      width: 122px;
-    }
-  }
-
-  img {
-    width: 120px;
-  }
-`;
 
 const Container = styled.div`
   display: grid;
@@ -120,84 +106,68 @@ const Detail = ({ collectionAddress }) => {
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [ownerOf, setOwnerOf] = useState("");
   const [rewards, setRewards] = useState(0);
+  const [locked, setLocked] = useState(false);
   const [lockBlock, setLockBlock] = useState(null);
   const [lockDuration, setLockDuration] = useState(-1);
-  const [lockDurationsConfig, setLockDurationDays] = useState(null);
-
-  useEffect(() => {
-    if (collectionAddress === KIDS_ADDRESS && kidsSmartContract) {
-      setSmartContract(kidsSmartContract);
-    } else if (collectionAddress === PUPS_ADDRESS && pupsSmartContract) {
-      setSmartContract(pupsSmartContract);
-    }
-  }, [
-    collectionAddress,
-    kidsSmartContract,
-    pupsSmartContract,
-    setSmartContract,
-  ]);
-
-  useEffect(() => {
-    if (account && smartContract) {
-      getOwnerOf(account);
-    }
-  }, [account, id, smartContract]);
-
-  useEffect(() => {
-    if (stakingSmartContract) {
-      getRewards();
-      getLockBlock();
-      getLockDurationByTokenId();
-    }
-  }, [stakingSmartContract]);
+  const [lockDurationDays, setLockDurationDays] = useState(null);
+  const [currentBlockNumber, setCurrentBlockNumber] = useState(null);
+  const [staked, setStaked] = useState(false);
+  const [stakedByUser, setStakedByUser] = useState(false);
+  const [bgContract, setBgContract] = useState(-1);
 
   const getRewards = useCallback(async () => {
-    let bgContract = -1;
-    if (collectionAddress === KIDS_ADDRESS) {
-      bgContract = 0;
-    } else if (collectionAddress === PUPS_ADDRESS) {
-      bgContract = 1;
-    }
     if (bgContract < 0) return;
     const [rawRewards] = (await stakingSmartContract.methods
       .calculateRewards(account, [parseInt(id)], [bgContract])
       .call()) || [0];
     const _rewards = parseInt(rawRewards) / 10 ** 18;
     setRewards(_rewards);
-  }, [account, id, stakingSmartContract, setRewards]);
+  }, [account, bgContract, id, stakingSmartContract, setRewards]);
+
+  const getStakedByUser = useCallback(async () => {
+    if (bgContract < 0) return;
+    const _stakedByUser = await _getStakedByUser({
+      account,
+      bgContract,
+      tokenId: id,
+      stakingSmartContract,
+    });
+    return _stakedByUser;
+  }, [account, bgContract, id, stakingSmartContract]);
 
   const getOwnerOf = useCallback(async () => {
     const _ownerOf = await smartContract.methods.ownerOf(id).call();
-    setOwnerOf(_ownerOf);
-  }, [account, smartContract, setOwnerOf]);
+    if (_ownerOf === STAKING_ADDRESS) {
+      setStaked(true);
+      const _stakedByUser = await getStakedByUser();
+      setStakedByUser(_stakedByUser);
+    } else {
+      setOwnerOf(_ownerOf);
+    }
+  }, [
+    id,
+    smartContract,
+    setOwnerOf,
+    setStaked,
+    getStakedByUser,
+    setStakedByUser,
+  ]);
 
   const getLockBlock = useCallback(async () => {
-    let bgContract = -1;
-    if (collectionAddress === KIDS_ADDRESS) {
-      bgContract = 0;
-    } else if (collectionAddress === PUPS_ADDRESS) {
-      bgContract = 1;
-    }
     if (bgContract < 0) return;
     const _lockBlock = await stakingSmartContract.methods
       .lockBlocks(bgContract, parseInt(id))
       .call();
     setLockBlock(parseInt(_lockBlock));
-  }, [account, id, stakingSmartContract, setLockBlock]);
+  }, [bgContract, id, stakingSmartContract, setLockBlock]);
 
   const getLockDurationByTokenId = useCallback(async () => {
-    let bgContract = -1;
-    if (collectionAddress === KIDS_ADDRESS) {
-      bgContract = 0;
-    } else if (collectionAddress === PUPS_ADDRESS) {
-      bgContract = 1;
-    }
     if (bgContract < 0) return;
     const _lockDuration = await stakingSmartContract.methods
       .lockDurationsByTokenId(bgContract, parseInt(id))
       .call();
     setLockDuration(parseInt(_lockDuration));
-  }, [id, stakingSmartContract, setLockDuration]);
+  }, [id, bgContract, stakingSmartContract, setLockDuration]);
 
   const getLockDurationDays = useCallback(async () => {
     const _lockDurationDays = await stakingSmartContract.methods
@@ -206,11 +176,10 @@ const Detail = ({ collectionAddress }) => {
     setLockDurationDays(parseInt(_lockDurationDays));
   }, [stakingSmartContract, setLockDurationDays, lockDuration]);
 
-  useEffect(() => {
-    if (lockDuration > -1) {
-      getLockDurationDays();
-    }
-  }, [lockDuration]);
+  const getCurrentBlockNumber = useCallback(async () => {
+    const _currentBlockNumber = await _getCurrentBlockNumber({});
+    setCurrentBlockNumber(_currentBlockNumber);
+  }, [setCurrentBlockNumber]);
 
   const connectMetaMask = useCallback(
     () =>
@@ -277,17 +246,63 @@ const Detail = ({ collectionAddress }) => {
     setShowConnectWalletModal(false);
   }, [setShowConnectWalletModal]);
 
-  // TODO
-  const locked = true;
-  const staked = true;
+  useEffect(() => {
+    let _bgContract = -1;
+    if (collectionAddress === KIDS_ADDRESS) {
+      if (kidsSmartContract) {
+        setSmartContract(kidsSmartContract);
+      }
+      _bgContract = 0;
+    } else if (collectionAddress === PUPS_ADDRESS) {
+      _bgContract = 1;
+      if (pupsSmartContract) {
+        setSmartContract(pupsSmartContract);
+      }
+    }
+    setBgContract(_bgContract);
+  }, [
+    collectionAddress,
+    setBgContract,
+    kidsSmartContract,
+    pupsSmartContract,
+    setSmartContract,
+  ]);
 
-  const getLockInfo = useCallback(() => {
-    if (locked) return "Locked until";
-  }, [locked]);
+  useEffect(() => {
+    if (account && smartContract) {
+      getOwnerOf(account);
+    }
+  }, [account, getOwnerOf, smartContract]);
 
-  const getBoostInfo = useCallback(() => {
-    return "Blahblahblah";
-  }, []);
+  useEffect(() => {
+    if (stakingSmartContract) {
+      getRewards();
+      getLockBlock();
+      getLockDurationByTokenId();
+    }
+  }, [
+    getRewards,
+    getLockBlock,
+    getLockDurationByTokenId,
+    stakingSmartContract,
+  ]);
+
+  useEffect(() => {
+    if (lockDuration > -1) {
+      getLockDurationDays();
+      getCurrentBlockNumber();
+    }
+  }, [getLockDurationDays, getCurrentBlockNumber, lockDuration]);
+
+  useEffect(() => {
+    if (lockBlock && lockDurationDays > 0 && currentBlockNumber) {
+      const lockDurationBlocks = lockDurationDays * BLOCKS_PER_DAY;
+      const lockExpirationBlock = lockBlock + lockDurationBlocks;
+      const blocksUntilExpiration = lockExpirationBlock - currentBlockNumber;
+      const _locked = blocksUntilExpiration > 0;
+      setLocked(_locked);
+    }
+  }, [currentBlockNumber, lockDurationDays, lockBlock, setLocked]);
 
   let collectionName;
   if (collectionAddress === KIDS_ADDRESS) {
@@ -315,24 +330,29 @@ const Detail = ({ collectionAddress }) => {
           connectCoinbaseWallet={connectCoinbaseWallet}
         />
       )}
-      {!account && (
-        <>
-          <ConnectButton onClick={handleConnectButtonClick}>
-            <img
-              src={"/connect-wallet.png"}
-              alt="connect button"
-              id="connect-button"
-            />
-          </ConnectButton>
-        </>
-      )}
+      <TopBar />
       <Container>
         <ImageContainer>
-          <img src={`${IPFS_PREFIX}${offsetId}.png`} />
+          <img
+            alt={`${collectionName} ${id}`}
+            src={`${IPFS_PREFIX}${offsetId}.png`}
+          />
         </ImageContainer>
         <Divider />
         <InfoContainer>
           <Header>{`${collectionName} #${offsetId}`}</Header>
+          {!account && (
+            <div>
+              <InnerInfoContainer>
+                <Info>Connect your wallet to see more details!</Info>
+              </InnerInfoContainer>
+              <ButtonContainer>
+                <Button onClick={handleConnectButtonClick} id="connect-button">
+                  Connect
+                </Button>
+              </ButtonContainer>
+            </div>
+          )}
           {ownerOf && (
             <Info>
               Owned by:{" "}
@@ -340,17 +360,23 @@ const Detail = ({ collectionAddress }) => {
                 href={`https://etherscan.io/address/${ownerOf}`}
                 target="_blank"
                 rel="noreferrer noopener"
-              >{`${ownerOf.slice(0, 6)}...${ownerOf.slice(36)}`}</a>
+              >
+                {ownerOf === account
+                  ? "You"
+                  : `${ownerOf.slice(0, 6)}...${ownerOf.slice(36)}`}
+              </a>
             </Info>
           )}
-          {(staked || locked) && (
+          {staked && (
             <InnerInfoContainer>
               <DepositInfoContainer>
                 {locked && <LockIcon />}
-                {staked && !locked && <StakedIcon />}
-                <Info>{getLockInfo()}</Info>
+                {/* TODO: staked icon */}
+                {!locked && <Info>Staked</Info>}
+                {/* TODO */}
+                {locked && <Info>Locked until Aug 12, 2022</Info>}
               </DepositInfoContainer>
-              <Info>{getBoostInfo()}</Info>
+              {locked && <Info>Rewards boost: 1.25x</Info>}
               {rewards > 0 && <Info>Unclaimed rewards: {rewards} GUM</Info>}
             </InnerInfoContainer>
           )}
@@ -358,10 +384,13 @@ const Detail = ({ collectionAddress }) => {
             {rewards > 0 && <Button>Claim Balance</Button>}
           </ButtonContainer>
           <ButtonContainer>
-            {locked && <Button>Extend Lock</Button>}
+            {stakedByUser && locked && <Button>Extend Lock</Button>}
           </ButtonContainer>
           <ButtonContainer>
-            {staked && !locked && <Button>Lock</Button>}
+            {stakedByUser && !locked && <Button>Lock</Button>}
+          </ButtonContainer>
+          <ButtonContainer>
+            {stakedByUser && !locked && <Button>Unstake</Button>}
           </ButtonContainer>
         </InfoContainer>
       </Container>

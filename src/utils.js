@@ -1,7 +1,9 @@
 import Web3 from "web3";
 import Web3EthContract from "web3-eth-contract";
+import Web3Utils from "web3-utils";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
+import orderBy from "lodash.orderby";
 import { KIDS_ADDRESS, PUPS_ADDRESS, STAKING_ADDRESS } from "./constants";
 import kidsAbi from "./abis/kidsAbi.json";
 import pupsAbi from "./abis/pupsAbi.json";
@@ -115,4 +117,103 @@ const _connectCoinbaseWallet = async ({
   }
 };
 
-export { _connectMetaMask, _connectWalletConnect, _connectCoinbaseWallet };
+const _getCurrentBlockNumber = async ({ web3 }) => {
+  const { ethereum } = window || {};
+  let _currentBlock;
+  if (ethereum) {
+    _currentBlock = await ethereum.request({
+      method: "eth_blockNumber",
+    });
+  } else if (web3) {
+    _currentBlock = await web3.eth.getBlockNumber();
+  }
+  if (!_currentBlock) return null;
+  return Web3Utils.hexToNumber(_currentBlock);
+};
+
+const checkForContractAndTokenIdMatch = ({
+  bgContract,
+  bgContracts,
+  tokenId,
+  tokenIds,
+}) => {
+  return (
+    bgContracts.map((c) => parseInt(c)).includes(parseInt(bgContract)) &&
+    tokenIds.map((t) => parseInt(t)).includes(parseInt(tokenId))
+  );
+};
+
+const _getStakedByUser = async ({
+  account,
+  bgContract,
+  tokenId,
+  stakingSmartContract,
+}) => {
+  const options = {
+    fromBlock: 0,
+    toBlock: "latest",
+    filter: {
+      from: account,
+    },
+  };
+  const userDespositEvents = await stakingSmartContract.getPastEvents(
+    "Deposited",
+    options
+  );
+  const userDepositAndLockEvents = await stakingSmartContract.getPastEvents(
+    "DepositedAndLocked",
+    options
+  );
+  const userWithdrawEvents = await stakingSmartContract.getPastEvents(
+    "Withdrawn",
+    options
+  );
+  const hasDeposited =
+    userDespositEvents.length || userDepositAndLockEvents.length;
+  if (!hasDeposited) return false;
+  const _depositBlocks = [];
+  for (const event of [...userDespositEvents, ...userDepositAndLockEvents]) {
+    const { blockNumber, returnValues = {} } = event;
+    const { bgContracts = [], tokenIds = [] } = returnValues;
+    if (
+      checkForContractAndTokenIdMatch({
+        bgContract,
+        bgContracts,
+        tokenId,
+        tokenIds,
+      })
+    ) {
+      _depositBlocks.push(blockNumber);
+    }
+  }
+  if (_depositBlocks.length === 0) return false;
+  if (userWithdrawEvents.length === 0) return true;
+  const depositBlocks = orderBy(_depositBlocks, [], ["desc"]);
+  const _withdrawBlocks = [];
+  for (const event of userWithdrawEvents) {
+    const { blockNumber, returnValues = {} } = event;
+    const { bgContracts = [], tokenIds = [] } = returnValues;
+    if (
+      checkForContractAndTokenIdMatch({
+        bgContract,
+        bgContracts,
+        tokenId,
+        tokenIds,
+      })
+    ) {
+      _withdrawBlocks.push(blockNumber);
+    }
+  }
+  if (_withdrawBlocks.length === 0) return true;
+  const withdrawBlocks = orderBy(_withdrawBlocks, [], ["desc"]);
+  if (withdrawBlocks[0] > depositBlocks[0]) return false;
+  return true;
+};
+
+export {
+  _connectMetaMask,
+  _connectWalletConnect,
+  _connectCoinbaseWallet,
+  _getCurrentBlockNumber,
+  _getStakedByUser,
+};

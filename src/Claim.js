@@ -3,6 +3,7 @@ import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
 import ConfirmationModal from "./ConfirmationModal";
 import SuccessModal from "./SuccessModal";
+import TopBar from "./TopBar";
 import ErrorModal from "./ErrorModal";
 import {
   _connectMetaMask,
@@ -20,21 +21,6 @@ const Container = styled.div`
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }
-`;
-
-const TopBar = styled.div`
-  display: grid;
-  grid-column: 1/-1;
-  height: 100px;
-  grid-template-columns: 1fr auto 1fr;
-  background-color: #ff74b4;
-  padding: 0 40px;
-  width: calc(100% - 80px);
-`;
-
-const Logo = styled.img`
-  width: 100px;
-  margin: 23px 0;
 `;
 
 const PreviewContainer = styled.div`
@@ -424,12 +410,7 @@ const Claim = () => {
         />
       )}
       {showSuccessModal && <SuccessModal closeModal={closeSuccessModal} />}
-      <TopBar>
-        <div />
-        <a href="https://bubblegumkids.xyz/home">
-          <Logo src="/bgk-logo.png" alt="bubblegum kids logo" />
-        </a>
-      </TopBar>
+      <TopBar />
       <Container>
         <PreviewContainer>
           <PreviewImage src="/roadmap.png" alt="roadmap" />

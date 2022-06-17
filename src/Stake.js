@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
 import TopBar from "./TopBar";
@@ -9,25 +9,10 @@ import {
   _getCurrentBlockNumber,
   _getStakedByUser,
 } from "./utils";
-import { IPFS_PREFIX } from "./constants";
+import { IPFS_PREFIX, KIDS_ADDRESS } from "./constants";
+import Moralis from "moralis";
 
-const ConnectButton = styled.button`
-  background-color: transparent;
-  border: none;
-  margin: 18px auto 0 auto;
-  cursor: pointer;
-
-  :hover {
-    margin-top: 17px;
-    img {
-      width: 122px;
-    }
-  }
-
-  img {
-    width: 120px;
-  }
-`;
+const { REACT_APP_MORALIS_APP_ID, REACT_APP_MORALIS_SERVER_URL } = process.env;
 
 const Container = styled.div`
   display: flex;
@@ -95,6 +80,22 @@ const Stake = () => {
   const [pupsSmartContract, setPupsSmartContract] = useState(null);
   const [stakingSmartContract, setStakingSmartContract] = useState(null);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+
+  const getNfts = useCallback(async () => {
+    const _nfts = await Moralis.Web3API.account.getNFTsForContract({
+      address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
+      token_address: "0xa5ae87B40076745895BB7387011ca8DE5fde37E0",
+    });
+    console.log({ _nfts });
+  }, []);
+
+  useEffect(() => {
+    Moralis.start({
+      serverUrl: REACT_APP_MORALIS_SERVER_URL,
+      appId: REACT_APP_MORALIS_APP_ID,
+    });
+    getNfts();
+  }, []);
 
   const connectMetaMask = useCallback(
     () =>

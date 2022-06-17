@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import moment from "moment";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import ConnectWalletModal from "./ConnectWalletModal";
@@ -88,6 +89,17 @@ const Info = styled.div`
   }
 `;
 
+const ExtraInfo = styled.div`
+  font-family: "Blatant", sans-serif;
+  padding: 12px;
+  margin-bottom: 12px;
+  background-color: #eee;
+  border-radius: 6px;
+  font-size: 18px;
+  color: #666;
+  max-width: 320px;
+`;
+
 const Divider = styled.div`
   background-color: #ff74b4;
   height: calc(100% - 120px);
@@ -114,6 +126,10 @@ const Detail = ({ collectionAddress }) => {
   const [staked, setStaked] = useState(false);
   const [stakedByUser, setStakedByUser] = useState(false);
   const [bgContract, setBgContract] = useState(-1);
+  const [lockExpirationBlock, setLockExpirationBlock] = useState(null);
+  const [lockExpirationDate, setLockExpirationDate] = useState(null);
+  const [showLockedTillExplanation, setShowLockedTillExplanation] =
+    useState(false);
 
   const getRewards = useCallback(async () => {
     if (bgContract < 0) return;
@@ -136,7 +152,7 @@ const Detail = ({ collectionAddress }) => {
   }, [account, bgContract, id, stakingSmartContract]);
 
   const getOwnerOf = useCallback(async () => {
-    const _ownerOf = await smartContract.methods.ownerOf(id).call();
+    const _ownerOf = await smartContract.methods.ownerOf(parseInt(id)).call();
     if (_ownerOf === STAKING_ADDRESS) {
       setStaked(true);
       const _stakedByUser = await getStakedByUser();
@@ -297,10 +313,17 @@ const Detail = ({ collectionAddress }) => {
   useEffect(() => {
     if (lockBlock && lockDurationDays > 0 && currentBlockNumber) {
       const lockDurationBlocks = lockDurationDays * BLOCKS_PER_DAY;
-      const lockExpirationBlock = lockBlock + lockDurationBlocks;
-      const blocksUntilExpiration = lockExpirationBlock - currentBlockNumber;
+      const _lockExpirationBlock = lockBlock + lockDurationBlocks;
+      const blocksUntilExpiration = _lockExpirationBlock - currentBlockNumber;
       const _locked = blocksUntilExpiration > 0;
       setLocked(_locked);
+      if (_locked) {
+        setLockExpirationBlock(_lockExpirationBlock);
+        const _lockExpirationDate = moment()
+          .add(`${Math.ceil(blocksUntilExpiration / 6000)} days`)
+          .format("MMM DD, YYYY");
+        setLockExpirationDate(_lockExpirationDate);
+      }
     }
   }, [currentBlockNumber, lockDurationDays, lockBlock, setLocked]);
 
@@ -373,8 +396,29 @@ const Detail = ({ collectionAddress }) => {
                 {locked && <LockIcon />}
                 {/* TODO: staked icon */}
                 {!locked && <Info>Staked</Info>}
-                {/* TODO */}
-                {locked && <Info>Locked until Aug 12, 2022</Info>}
+                {locked && (
+                  <>
+                    <Info>
+                      Locked until {lockExpirationDate}{" "}
+                      <img
+                        onClick={() =>
+                          setShowLockedTillExplanation(
+                            !showLockedTillExplanation
+                          )
+                        }
+                        src="/infoIcon.svg"
+                        alt="info"
+                        style={{ cursor: "pointer", verticalAlign: "top" }}
+                      />
+                    </Info>
+                    {showLockedTillExplanation && (
+                      <ExtraInfo>
+                        This date is an estimate. The lock will actually expire
+                        at block {lockExpirationBlock}.
+                      </ExtraInfo>
+                    )}
+                  </>
+                )}
               </DepositInfoContainer>
               {locked && <Info>Rewards boost: 1.25x</Info>}
               {rewards > 0 && <Info>Unclaimed rewards: {rewards} GUM</Info>}

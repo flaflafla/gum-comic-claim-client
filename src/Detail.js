@@ -25,6 +25,7 @@ import {
 const Container = styled.div`
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
+  position: relative;
 `;
 
 const ImageContainer = styled.div`
@@ -108,8 +109,30 @@ const Divider = styled.div`
   margin-top: 60px;
 `;
 
-const Detail = ({ collectionAddress }) => {
-  const { id } = useParams();
+const CloseButton = styled.button`
+  width: 44px;
+  height: 44px;
+  font-size: 32px;
+  border: 1px solid #666;
+  border-radius: 600px;
+  padding: 4px;
+  background-color: transparent;
+  color: #666;
+  position: absolute;
+  top: 30px;
+  right: 80px;
+  cursor: pointer;
+
+  :hover {
+    border-color: white;
+    background-color: #ff74b4;
+    color: white;
+  }
+`;
+
+const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
+  const { id: _id } = useParams();
+  const id = parseInt(detailId || _id);
 
   const [account, setAccount] = useState("");
   const [error, setError] = useState("");
@@ -136,7 +159,7 @@ const Detail = ({ collectionAddress }) => {
   const getRewards = useCallback(async () => {
     if (bgContract < 0) return;
     const [rawRewards] = (await stakingSmartContract.methods
-      .calculateRewards(account, [parseInt(id)], [bgContract])
+      .calculateRewards(account, [id], [bgContract])
       .call()) || [0];
     const _rewards = parseInt(rawRewards) / 10 ** 18;
     setRewards(_rewards);
@@ -154,7 +177,7 @@ const Detail = ({ collectionAddress }) => {
   }, [account, bgContract, id, stakingSmartContract]);
 
   const getOwnerOf = useCallback(async () => {
-    const _ownerOf = await smartContract.methods.ownerOf(parseInt(id)).call();
+    const _ownerOf = await smartContract.methods.ownerOf(id).call();
     if (_ownerOf === STAKING_ADDRESS) {
       setStaked(true);
       const _stakedByUser = await getStakedByUser();
@@ -174,7 +197,7 @@ const Detail = ({ collectionAddress }) => {
   const getLockBlock = useCallback(async () => {
     if (bgContract < 0) return;
     const _lockBlock = await stakingSmartContract.methods
-      .lockBlocks(bgContract, parseInt(id))
+      .lockBlocks(bgContract, id)
       .call();
     setLockBlock(parseInt(_lockBlock));
   }, [bgContract, id, stakingSmartContract, setLockBlock]);
@@ -182,7 +205,7 @@ const Detail = ({ collectionAddress }) => {
   const getLockDurationByTokenId = useCallback(async () => {
     if (bgContract < 0) return;
     const _lockDuration = await stakingSmartContract.methods
-      .lockDurationsByTokenId(bgContract, parseInt(id))
+      .lockDurationsByTokenId(bgContract, id)
       .call();
     setLockDuration(parseInt(_lockDuration));
   }, [id, bgContract, stakingSmartContract, setLockDuration]);
@@ -349,7 +372,7 @@ const Detail = ({ collectionAddress }) => {
     collectionName = "Pup";
   }
 
-  const parsedId = parseInt(id);
+  const parsedId = id;
 
   if (isNaN(parsedId) || parsedId < 0 || parsedId > 9999) {
     return <div>No token with this id found</div>;
@@ -376,6 +399,9 @@ const Detail = ({ collectionAddress }) => {
       )}
       <TopBar />
       <Container>
+        {detailId > -1 && (
+          <CloseButton onClick={() => setShowDetail(false)}>×</CloseButton>
+        )}
         <ImageContainer>
           <img
             alt={`${collectionName} ${id}`}

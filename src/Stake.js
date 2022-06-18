@@ -9,8 +9,16 @@ import {
   _getCurrentBlockNumber,
   _getStakedByUser,
 } from "./utils";
-import { KIDS_IPFS_PREFIX, KIDS_ADDRESS, PUPS_IPFS_PREFIX } from "./constants";
+import {
+  KIDS_ADDRESS,
+  KIDS_IPFS_PREFIX,
+  KIDS_OFFSET,
+  PUPS_ADDRESS,
+  PUPS_IPFS_PREFIX,
+  PUPS_OFFSET,
+} from "./constants";
 import Moralis from "moralis";
+import Detail from "./Detail";
 
 const { REACT_APP_MORALIS_APP_ID, REACT_APP_MORALIS_SERVER_URL } = process.env;
 
@@ -80,6 +88,9 @@ const Stake = () => {
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [kidsIds, setKidsIds] = useState([]);
   const [pupsIds, setPupsIds] = useState([]);
+  const [collectionAddress, setCollectionAddress] = useState(null);
+  const [detailId, setDetailId] = useState(-1);
+  const [showDetail, setShowDetail] = useState(false);
 
   const getNfts = useCallback(async () => {
     const _kids =
@@ -175,6 +186,15 @@ const Stake = () => {
     setShowConnectWalletModal(false);
   }, [setShowConnectWalletModal]);
 
+  const handleManageClick = useCallback(
+    ({ _collectionAddress, _detailId }) => {
+      setCollectionAddress(_collectionAddress);
+      setDetailId(_detailId);
+      setShowDetail(true);
+    },
+    [setCollectionAddress, setDetailId, setShowDetail]
+  );
+
   return (
     <>
       {showConnectWalletModal && (
@@ -185,31 +205,62 @@ const Stake = () => {
           connectCoinbaseWallet={connectCoinbaseWallet}
         />
       )}
-      <TopBar />
-      <Container>
-        {[...kidsIds].map((id) => (
-          <ItemContainer>
-            <ImageContainer>
-              <img alt="" src={`${KIDS_IPFS_PREFIX}${id}.png`} />
-            </ImageContainer>
-            <Header>Kid #{id}</Header>
-            <a href={`/kid/${id}`}>
-              <Button>Manage</Button>
-            </a>
-          </ItemContainer>
-        ))}
-        {[...pupsIds].map((id) => (
-          <ItemContainer>
-            <ImageContainer>
-              <img alt="" src={`${PUPS_IPFS_PREFIX}${id}.png`} />
-            </ImageContainer>
-            <Header>Pup #{id}</Header>
-            <a href={`/pup/${id}`}>
-              <Button>Manage</Button>
-            </a>
-          </ItemContainer>
-        ))}
-      </Container>
+      {showDetail && (
+        <Detail
+          detailId={detailId}
+          collectionAddress={collectionAddress}
+          setShowDetail={setShowDetail}
+        />
+      )}
+      {!showDetail && (
+        <>
+          <TopBar />
+          <Container>
+            {[...kidsIds].map((id) => {
+              const offsetId = (id + KIDS_OFFSET) % 10_000;
+              return (
+                <ItemContainer>
+                  <ImageContainer>
+                    <img alt="" src={`${KIDS_IPFS_PREFIX}${offsetId}.png`} />
+                  </ImageContainer>
+                  <Header>Kid #{offsetId}</Header>
+                  <Button
+                    onClick={() =>
+                      handleManageClick({
+                        _collectionAddress: KIDS_ADDRESS,
+                        _detailId: id,
+                      })
+                    }
+                  >
+                    Manage
+                  </Button>
+                </ItemContainer>
+              );
+            })}
+            {[...pupsIds].map((id) => {
+              const offsetId = (id + PUPS_OFFSET) % 10_000;
+              return (
+                <ItemContainer>
+                  <ImageContainer>
+                    <img alt="" src={`${PUPS_IPFS_PREFIX}${offsetId}.png`} />
+                  </ImageContainer>
+                  <Header>Pup #{offsetId}</Header>
+                  <Button
+                    onClick={() =>
+                      handleManageClick({
+                        _collectionAddress: PUPS_ADDRESS,
+                        _detailId: id,
+                      })
+                    }
+                  >
+                    Manage
+                  </Button>
+                </ItemContainer>
+              );
+            })}
+          </Container>
+        </>
+      )}
     </>
   );
 };

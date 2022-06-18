@@ -6,10 +6,12 @@ import ConnectWalletModal from "./ConnectWalletModal";
 import TopBar from "./TopBar";
 import {
   BLOCKS_PER_DAY,
-  IPFS_PREFIX,
   KIDS_ADDRESS,
-  OFFSET,
+  KIDS_IPFS_PREFIX,
+  KIDS_OFFSET,
   PUPS_ADDRESS,
+  PUPS_IPFS_PREFIX,
+  PUPS_OFFSET,
   STAKING_ADDRESS,
 } from "./constants";
 import {
@@ -128,8 +130,8 @@ const Detail = ({ collectionAddress }) => {
   const [bgContract, setBgContract] = useState(-1);
   const [lockExpirationBlock, setLockExpirationBlock] = useState(null);
   const [lockExpirationDate, setLockExpirationDate] = useState(null);
-  const [showLockedTillExplanation, setShowLockedTillExplanation] =
-    useState(false);
+  const [showLockedExplanation, setShowLockedExplanation] = useState(false);
+  const [lockBoostRate, setLockBoostRate] = useState(0);
 
   const getRewards = useCallback(async () => {
     if (bgContract < 0) return;
@@ -191,6 +193,13 @@ const Detail = ({ collectionAddress }) => {
       .call();
     setLockDurationDays(parseInt(_lockDurationDays));
   }, [stakingSmartContract, setLockDurationDays, lockDuration]);
+
+  const getLockBoostRate = useCallback(async () => {
+    const _lockBoostRate = await stakingSmartContract.methods
+      .lockBoostRates(lockDuration)
+      .call();
+    setLockBoostRate(parseInt(_lockBoostRate));
+  }, [stakingSmartContract, setLockBoostRate, lockDuration]);
 
   const getCurrentBlockNumber = useCallback(async () => {
     const _currentBlockNumber = await _getCurrentBlockNumber({});
@@ -307,8 +316,14 @@ const Detail = ({ collectionAddress }) => {
     if (lockDuration > -1) {
       getLockDurationDays();
       getCurrentBlockNumber();
+      getLockBoostRate();
     }
-  }, [getLockDurationDays, getCurrentBlockNumber, lockDuration]);
+  }, [
+    getLockDurationDays,
+    getCurrentBlockNumber,
+    getLockBoostRate,
+    lockDuration,
+  ]);
 
   useEffect(() => {
     if (lockBlock && lockDurationDays > 0 && currentBlockNumber) {
@@ -341,7 +356,13 @@ const Detail = ({ collectionAddress }) => {
   }
 
   // related to reveal - see contract for context
-  const offsetId = (parsedId + OFFSET) % 10_000;
+  const offsetId =
+    (parsedId +
+      (collectionAddress === KIDS_ADDRESS ? KIDS_OFFSET : PUPS_OFFSET)) %
+    10_000;
+
+  const ipfsPrefix =
+    collectionAddress === KIDS_ADDRESS ? KIDS_IPFS_PREFIX : PUPS_IPFS_PREFIX;
 
   return (
     <>
@@ -358,7 +379,7 @@ const Detail = ({ collectionAddress }) => {
         <ImageContainer>
           <img
             alt={`${collectionName} ${id}`}
-            src={`${IPFS_PREFIX}${offsetId}.png`}
+            src={`${ipfsPrefix}${offsetId}.png`}
           />
         </ImageContainer>
         <Divider />
@@ -402,25 +423,25 @@ const Detail = ({ collectionAddress }) => {
                       Locked until {lockExpirationDate}{" "}
                       <img
                         onClick={() =>
-                          setShowLockedTillExplanation(
-                            !showLockedTillExplanation
-                          )
+                          setShowLockedExplanation(!showLockedExplanation)
                         }
                         src="/infoIcon.svg"
                         alt="info"
                         style={{ cursor: "pointer", verticalAlign: "top" }}
                       />
                     </Info>
-                    {showLockedTillExplanation && (
+                    {showLockedExplanation && (
                       <ExtraInfo>
-                        This date is an estimate. The lock will actually expire
-                        at block {lockExpirationBlock}.
+                        This date is an estimate. The lock will expire at block{" "}
+                        {lockExpirationBlock}.
                       </ExtraInfo>
                     )}
                   </>
                 )}
               </DepositInfoContainer>
-              {locked && <Info>Rewards boost: 1.25x</Info>}
+              {locked && lockBoostRate > 0 && (
+                <Info>Rewards boost: {lockBoostRate / 100}x</Info>
+              )}
               {rewards > 0 && <Info>Unclaimed rewards: {rewards} GUM</Info>}
             </InnerInfoContainer>
           )}

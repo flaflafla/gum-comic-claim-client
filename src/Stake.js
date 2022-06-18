@@ -9,7 +9,7 @@ import {
   _getCurrentBlockNumber,
   _getStakedByUser,
 } from "./utils";
-import { IPFS_PREFIX, KIDS_ADDRESS } from "./constants";
+import { KIDS_IPFS_PREFIX, KIDS_ADDRESS, PUPS_IPFS_PREFIX } from "./constants";
 import Moralis from "moralis";
 
 const { REACT_APP_MORALIS_APP_ID, REACT_APP_MORALIS_SERVER_URL } = process.env;
@@ -71,8 +71,6 @@ const Info = styled.div`
   }
 `;
 
-const DUMMY_IDS = [12, 800, 1032, 9, 4732, 123, 4322, 9092, 555];
-
 const Stake = () => {
   const [account, setAccount] = useState("");
   const [error, setError] = useState("");
@@ -80,13 +78,28 @@ const Stake = () => {
   const [pupsSmartContract, setPupsSmartContract] = useState(null);
   const [stakingSmartContract, setStakingSmartContract] = useState(null);
   const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
+  const [kidsIds, setKidsIds] = useState([]);
+  const [pupsIds, setPupsIds] = useState([]);
 
   const getNfts = useCallback(async () => {
-    const _nfts = await Moralis.Web3API.account.getNFTsForContract({
-      address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
-      token_address: "0xa5ae87B40076745895BB7387011ca8DE5fde37E0",
-    });
-    console.log({ _nfts });
+    const _kids =
+      (await Moralis.Web3API.account.getNFTsForContract({
+        address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
+        token_address: "0xa5ae87B40076745895BB7387011ca8DE5fde37E0",
+      })) || {};
+    const _kidsIds = (_kids.result || []).map(({ token_id }) =>
+      parseInt(token_id)
+    );
+    setKidsIds(_kidsIds);
+    const _pups =
+      (await Moralis.Web3API.account.getNFTsForContract({
+        address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
+        token_address: "0x86e9C5ad3D4b5519DA2D2C19F5c71bAa5Ef40933",
+      })) || {};
+    const _pupsIds = (_pups.result || []).map(({ token_id }) =>
+      parseInt(token_id)
+    );
+    setPupsIds(_pupsIds);
   }, []);
 
   useEffect(() => {
@@ -174,13 +187,26 @@ const Stake = () => {
       )}
       <TopBar />
       <Container>
-        {DUMMY_IDS.map((id) => (
+        {[...kidsIds].map((id) => (
           <ItemContainer>
             <ImageContainer>
-              <img alt="" src={`${IPFS_PREFIX}${id}.png`} />
+              <img alt="" src={`${KIDS_IPFS_PREFIX}${id}.png`} />
             </ImageContainer>
             <Header>Kid #{id}</Header>
-            <Button>Manage</Button>
+            <a href={`/kid/${id}`}>
+              <Button>Manage</Button>
+            </a>
+          </ItemContainer>
+        ))}
+        {[...pupsIds].map((id) => (
+          <ItemContainer>
+            <ImageContainer>
+              <img alt="" src={`${PUPS_IPFS_PREFIX}${id}.png`} />
+            </ImageContainer>
+            <Header>Pup #{id}</Header>
+            <a href={`/pup/${id}`}>
+              <Button>Manage</Button>
+            </a>
           </ItemContainer>
         ))}
       </Container>

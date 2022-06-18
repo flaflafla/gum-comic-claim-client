@@ -8,19 +8,25 @@ const KIDS_ADDRESS = "0x13a5f9a34a5597ac821f551447446d363a945569";
 const PUPS_ADDRESS = "0xf0a2f967a55492b3db4ffbf1ee7de6bd5cf34009";
 const STAKING_ADDRESS = "0x6eC471fC2D55Db45dE540201170CD2d7D3A95ed3";
 
-const IPFS_PREFIX =
+const KIDS_IPFS_PREFIX =
   "https://ipfs.io/ipfs/QmQSVJxbdFD7z9CxxKYicJsy8NfA7WvseZD4foR89LGdcj/";
 
+const PUPS_IPFS_PREFIX =
+  "https://ipfs.io/ipfs/QmX8i7gFd93twLdoXLxVqF3R7CepHz7vqHbUQrVgFyygEc/";
+
 // almost certainly won't change
-const OFFSET = 2458;
+const KIDS_OFFSET = 2458;
+const PUPS_OFFSET = 7837;
 
 const BLOCKS_PER_DAY = 6000;
 
 export {
   BLOCKS_PER_DAY,
-  IPFS_PREFIX,
+  KIDS_IPFS_PREFIX,
   KIDS_ADDRESS,
-  OFFSET,
+  KIDS_OFFSET,
   PUPS_ADDRESS,
+  PUPS_OFFSET,
+  PUPS_IPFS_PREFIX,
   STAKING_ADDRESS,
 };

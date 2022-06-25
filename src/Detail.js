@@ -22,6 +22,8 @@ import {
   _getStakedByUser,
 } from "./utils";
 
+const { REACT_APP_API_URL } = process.env;
+
 const Container = styled.div`
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
@@ -155,6 +157,7 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
   const [lockExpirationDate, setLockExpirationDate] = useState(null);
   const [showLockedExplanation, setShowLockedExplanation] = useState(false);
   const [lockBoostRate, setLockBoostRate] = useState(0);
+  const [imgSrc, setImgSrc] = useState("");
 
   const getRewards = useCallback(async () => {
     if (bgContract < 0) return;
@@ -294,6 +297,27 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
     setShowConnectWalletModal(false);
   }, [setShowConnectWalletModal]);
 
+  const getImage = useCallback(() => {
+    let collection = "";
+    if (collectionAddress === KIDS_ADDRESS) {
+      collection = "bgk";
+    } else if (collectionAddress === PUPS_ADDRESS) {
+      collection = "bgp";
+    }
+    fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
+      .then((res) => res.json())
+      .then(({ data: _imgSrc }) => {
+        setImgSrc(_imgSrc);
+      })
+      .catch(console.error);
+  }, [collectionAddress, id, setImgSrc]);
+
+  useEffect(() => {
+    if (id > -1 && collectionAddress) {
+      getImage();
+    }
+  }, [collectionAddress, id]);
+
   useEffect(() => {
     let _bgContract = -1;
     if (collectionAddress === KIDS_ADDRESS) {
@@ -403,10 +427,7 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
           <CloseButton onClick={() => setShowDetail(false)}>×</CloseButton>
         )}
         <ImageContainer>
-          <img
-            alt={`${collectionName} ${id}`}
-            src={`${ipfsPrefix}${offsetId}.png`}
-          />
+          {imgSrc && <img alt={`${collectionName} ${id}`} src={imgSrc} />}
         </ImageContainer>
         <Divider />
         <InfoContainer>

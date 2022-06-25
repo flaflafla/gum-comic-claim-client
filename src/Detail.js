@@ -306,8 +306,9 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
     }
     fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
       .then((res) => res.json())
-      .then(({ data: _imgSrc }) => {
-        setImgSrc(_imgSrc);
+      .then(({ data = {} }) => {
+        const { src } = data;
+        setImgSrc(src);
       })
       .catch(console.error);
   }, [collectionAddress, id, setImgSrc]);

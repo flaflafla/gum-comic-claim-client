@@ -11,16 +11,18 @@ import {
 } from "./utils";
 import {
   KIDS_ADDRESS,
-  KIDS_IPFS_PREFIX,
   KIDS_OFFSET,
   PUPS_ADDRESS,
-  PUPS_IPFS_PREFIX,
   PUPS_OFFSET,
 } from "./constants";
 import Moralis from "moralis";
 import Detail from "./Detail";
 
-const { REACT_APP_MORALIS_APP_ID, REACT_APP_MORALIS_SERVER_URL } = process.env;
+const {
+  REACT_APP_API_URL,
+  REACT_APP_MORALIS_APP_ID,
+  REACT_APP_MORALIS_SERVER_URL,
+} = process.env;
 
 const Container = styled.div`
   display: flex;
@@ -91,6 +93,8 @@ const Stake = () => {
   const [collectionAddress, setCollectionAddress] = useState(null);
   const [detailId, setDetailId] = useState(-1);
   const [showDetail, setShowDetail] = useState(false);
+  const [imgSrcs, setImgSrcs] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const getNfts = useCallback(async () => {
     const _kids =
@@ -112,6 +116,44 @@ const Stake = () => {
     );
     setPupsIds(_pupsIds);
   }, []);
+
+  const getImages = useCallback(() => {
+    const _imgSrcs = {
+      bgk: {},
+      bgp: {},
+    };
+    const kidsIdsWithCollection = kidsIds.map((id) => ({
+      id,
+      collection: "bgk",
+    }));
+    const pupsIdsWithCollection = pupsIds.map((id) => ({
+      id,
+      collection: "bgp",
+    }));
+    Promise.all(
+      [...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
+        ({ id, collection }) => {
+          return fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
+            .then((res) => res.json())
+            .then((data) => data);
+        }
+      )
+    )
+      .then((data) => {
+        for (const item of data) {
+          const { src, collection, id } = item.data || {};
+          _imgSrcs[collection][id] = src;
+        }
+        setImgSrcs(_imgSrcs);
+        setLoading(false);
+      })
+      .catch(console.error);
+  }, [kidsIds, pupsIds, setImgSrcs]);
+
+  useEffect(() => {
+    if (!kidsIds.length && !pupsIds.length) return;
+    getImages();
+  }, [kidsIds, pupsIds, getImages]);
 
   useEffect(() => {
     Moralis.start({
@@ -195,6 +237,19 @@ const Stake = () => {
     [setCollectionAddress, setDetailId, setShowDetail]
   );
 
+  const kidsIdsWithCollection = kidsIds.map((id) => ({
+    id,
+    collection: "bgk",
+  }));
+  const pupsIdsWithCollection = pupsIds.map((id) => ({
+    id,
+    collection: "bgp",
+  }));
+
+  if (loading) {
+    return <>LOADINGGGGGGGG</>;
+  }
+
   return (
     <>
       {showConnectWalletModal && (
@@ -216,48 +271,37 @@ const Stake = () => {
         <>
           <TopBar />
           <Container>
-            {[...kidsIds].map((id) => {
-              const offsetId = (id + KIDS_OFFSET) % 10_000;
-              return (
-                <ItemContainer>
-                  <ImageContainer>
-                    <img alt="" src={`${KIDS_IPFS_PREFIX}${offsetId}.png`} />
-                  </ImageContainer>
-                  <Header>Kid #{offsetId}</Header>
-                  <Button
-                    onClick={() =>
-                      handleManageClick({
-                        _collectionAddress: KIDS_ADDRESS,
-                        _detailId: id,
-                      })
-                    }
-                  >
-                    Manage
-                  </Button>
-                </ItemContainer>
-              );
-            })}
-            {[...pupsIds].map((id) => {
-              const offsetId = (id + PUPS_OFFSET) % 10_000;
-              return (
-                <ItemContainer>
-                  <ImageContainer>
-                    <img alt="" src={`${PUPS_IPFS_PREFIX}${offsetId}.png`} />
-                  </ImageContainer>
-                  <Header>Pup #{offsetId}</Header>
-                  <Button
-                    onClick={() =>
-                      handleManageClick({
-                        _collectionAddress: PUPS_ADDRESS,
-                        _detailId: id,
-                      })
-                    }
-                  >
-                    Manage
-                  </Button>
-                </ItemContainer>
-              );
-            })}
+            {[...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
+              ({ id, collection }) => {
+                const offsetId =
+                  (id + collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET) %
+                  10_000;
+                const header = `${
+                  collection === "bgk" ? "Kid " : "Pup "
+                }#${offsetId}`;
+                const _collectionAddress =
+                  collection === "bgk" ? KIDS_ADDRESS : PUPS_ADDRESS;
+                const imgSrc = imgSrcs?.[collection]?.[id] || "";
+                return (
+                  <ItemContainer>
+                    <ImageContainer>
+                      {imgSrc && <img alt="" src={imgSrc} />}
+                    </ImageContainer>
+                    <Header>{header}</Header>
+                    <Button
+                      onClick={() =>
+                        handleManageClick({
+                          _collectionAddress,
+                          _detailId: id,
+                        })
+                      }
+                    >
+                      Manage
+                    </Button>
+                  </ItemContainer>
+                );
+              }
+            )}
           </Container>
         </>
       )}

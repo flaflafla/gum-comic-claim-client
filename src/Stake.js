@@ -247,6 +247,7 @@ const Stake = () => {
   }));
 
   if (loading) {
+    // TODO: spinner or asset
     return <>LOADINGGGGGGGG</>;
   }
 
@@ -267,44 +268,42 @@ const Stake = () => {
           setShowDetail={setShowDetail}
         />
       )}
-      {!showDetail && (
-        <>
-          <TopBar />
-          <Container>
-            {[...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
-              ({ id, collection }) => {
-                const offsetId =
-                  (id + collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET) %
-                  10_000;
-                const header = `${
-                  collection === "bgk" ? "Kid " : "Pup "
-                }#${offsetId}`;
-                const _collectionAddress =
-                  collection === "bgk" ? KIDS_ADDRESS : PUPS_ADDRESS;
-                const imgSrc = imgSrcs?.[collection]?.[id] || "";
-                return (
-                  <ItemContainer>
-                    <ImageContainer>
-                      {imgSrc && <img alt="" src={imgSrc} />}
-                    </ImageContainer>
-                    <Header>{header}</Header>
-                    <Button
-                      onClick={() =>
-                        handleManageClick({
-                          _collectionAddress,
-                          _detailId: id,
-                        })
-                      }
-                    >
-                      Manage
-                    </Button>
-                  </ItemContainer>
-                );
-              }
-            )}
-          </Container>
-        </>
-      )}
+      <div style={{ display: showDetail ? "none" : "inherit" }}>
+        <TopBar />
+        <Container>
+          {[...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
+            ({ id, collection }) => {
+              const offsetId =
+                (id + collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET) %
+                10_000;
+              const header = `${
+                collection === "bgk" ? "Kid " : "Pup "
+              }#${offsetId}`;
+              const _collectionAddress =
+                collection === "bgk" ? KIDS_ADDRESS : PUPS_ADDRESS;
+              const imgSrc = imgSrcs?.[collection]?.[id] || "";
+              return (
+                <ItemContainer>
+                  <ImageContainer>
+                    {imgSrc && <img alt="" src={imgSrc} />}
+                  </ImageContainer>
+                  <Header>{header}</Header>
+                  <Button
+                    onClick={() =>
+                      handleManageClick({
+                        _collectionAddress,
+                        _detailId: id,
+                      })
+                    }
+                  >
+                    Manage
+                  </Button>
+                </ItemContainer>
+              );
+            }
+          )}
+        </Container>
+      </div>
     </>
   );
 };

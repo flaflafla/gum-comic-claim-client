@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
-import ConnectWalletModal from "./ConnectWalletModal";
 import TopBar from "./TopBar";
 import {
   _connectMetaMask,
@@ -17,6 +16,8 @@ import {
 } from "./constants";
 import Moralis from "moralis";
 import Detail from "./Detail";
+import StakeLanding from "./StakeLanding";
+import { Button } from "./styles";
 
 const {
   REACT_APP_API_URL,
@@ -51,23 +52,6 @@ const Header = styled.h2`
   color: #666;
 `;
 
-const Button = styled.button`
-  background-color: #fff;
-  border: solid 3px #ff74b4;
-  border-radius: 12px;
-  color: #666;
-  cursor: pointer;
-  font-family: "Blatant", sans-serif;
-  font-size: 20px;
-  height: 42px;
-  width: 220px;
-
-  &:hover {
-    background-color: #ff74b4;
-    color: #fff;
-  }
-`;
-
 const SocialIcon = styled.div``;
 
 const Info = styled.div`
@@ -87,7 +71,6 @@ const Stake = () => {
   const [kidsSmartContract, setKidsSmartContract] = useState(null);
   const [pupsSmartContract, setPupsSmartContract] = useState(null);
   const [stakingSmartContract, setStakingSmartContract] = useState(null);
-  const [showConnectWalletModal, setShowConnectWalletModal] = useState(false);
   const [kidsIds, setKidsIds] = useState([]);
   const [pupsIds, setPupsIds] = useState([]);
   const [collectionAddress, setCollectionAddress] = useState(null);
@@ -163,71 +146,6 @@ const Stake = () => {
     getNfts();
   }, []);
 
-  const connectMetaMask = useCallback(
-    () =>
-      _connectMetaMask({
-        setAccount,
-        setError,
-        setKidsSmartContract,
-        setPupsSmartContract,
-        setStakingSmartContract,
-        setContracts: true,
-      }),
-    [
-      setAccount,
-      setError,
-      setKidsSmartContract,
-      setPupsSmartContract,
-      setStakingSmartContract,
-    ]
-  );
-
-  const connectWalletConnect = useCallback(
-    () =>
-      _connectWalletConnect({
-        setAccount,
-        setError,
-        setKidsSmartContract,
-        setPupsSmartContract,
-        setStakingSmartContract,
-        setContracts: true,
-      }),
-    [
-      setAccount,
-      setError,
-      setKidsSmartContract,
-      setPupsSmartContract,
-      setStakingSmartContract,
-    ]
-  );
-
-  const connectCoinbaseWallet = useCallback(
-    () =>
-      _connectCoinbaseWallet({
-        setAccount,
-        setError,
-        setKidsSmartContract,
-        setPupsSmartContract,
-        setStakingSmartContract,
-        setContracts: true,
-      }),
-    [
-      setAccount,
-      setError,
-      setKidsSmartContract,
-      setPupsSmartContract,
-      setStakingSmartContract,
-    ]
-  );
-
-  const handleConnectButtonClick = useCallback(() => {
-    setShowConnectWalletModal(true);
-  }, [setShowConnectWalletModal]);
-
-  const closeModal = useCallback(() => {
-    setShowConnectWalletModal(false);
-  }, [setShowConnectWalletModal]);
-
   const handleManageClick = useCallback(
     ({ _collectionAddress, _detailId }) => {
       setCollectionAddress(_collectionAddress);
@@ -241,31 +159,41 @@ const Stake = () => {
     id,
     collection: "bgk",
   }));
+
   const pupsIdsWithCollection = pupsIds.map((id) => ({
     id,
     collection: "bgp",
   }));
 
+  if (!account) {
+    return (
+      <StakeLanding
+        setAccount={setAccount}
+        setError={setError}
+        setKidsSmartContract={setKidsSmartContract}
+        setPupsSmartContract={setPupsSmartContract}
+        setStakingSmartContract={setStakingSmartContract}
+      />
+    );
+  }
+
   if (loading) {
-    // TODO: spinner or asset
-    return <>LOADINGGGGGGGG</>;
+    return (
+      <div style={{ paddingTop: "68px", textAlign: "center" }}>
+        <img src="/loading.gif" alt="loading" />
+      </div>
+    );
   }
 
   return (
     <>
-      {showConnectWalletModal && (
-        <ConnectWalletModal
-          closeModal={closeModal}
-          connectMetaMask={connectMetaMask}
-          connectWalletConnect={connectWalletConnect}
-          connectCoinbaseWallet={connectCoinbaseWallet}
-        />
-      )}
       {showDetail && (
         <Detail
+          _account={account}
           detailId={detailId}
           collectionAddress={collectionAddress}
           setShowDetail={setShowDetail}
+          imgSrcs={imgSrcs}
         />
       )}
       <div style={{ display: showDetail ? "none" : "inherit" }}>
@@ -273,9 +201,8 @@ const Stake = () => {
         <Container>
           {[...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
             ({ id, collection }) => {
-              const offsetId =
-                (id + collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET) %
-                10_000;
+              const offset = collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET;
+              const offsetId = (id + offset) % 10_000;
               const header = `${
                 collection === "bgk" ? "Kid " : "Pup "
               }#${offsetId}`;
@@ -283,7 +210,7 @@ const Stake = () => {
                 collection === "bgk" ? KIDS_ADDRESS : PUPS_ADDRESS;
               const imgSrc = imgSrcs?.[collection]?.[id] || "";
               return (
-                <ItemContainer>
+                <ItemContainer key={`${collection}-${id}`}>
                   <ImageContainer>
                     {imgSrc && <img alt="" src={imgSrc} />}
                   </ImageContainer>

@@ -21,6 +21,7 @@ import {
   _getCurrentBlockNumber,
   _getStakedByUser,
 } from "./utils";
+import { Button } from "./styles";
 
 const { REACT_APP_API_URL } = process.env;
 
@@ -57,23 +58,6 @@ const Header = styled.h2`
 const LockIcon = styled.div``;
 
 const StakedIcon = styled.div``;
-
-const Button = styled.button`
-  background-color: #fff;
-  border: solid 3px #ff74b4;
-  border-radius: 12px;
-  color: #666;
-  cursor: pointer;
-  font-family: "Blatant", sans-serif;
-  font-size: 20px;
-  height: 42px;
-  width: 220px;
-
-  &:hover {
-    background-color: #ff74b4;
-    color: #fff;
-  }
-`;
 
 const ButtonContainer = styled.div`
   margin-bottom: 12px;
@@ -132,7 +116,13 @@ const CloseButton = styled.button`
   }
 `;
 
-const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
+const Detail = ({
+  _account,
+  collectionAddress,
+  detailId,
+  imgSrcs,
+  setShowDetail,
+}) => {
   const { id: _id } = useParams();
   const id = parseInt(detailId || _id);
 
@@ -304,6 +294,11 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
     } else if (collectionAddress === PUPS_ADDRESS) {
       collection = "bgp";
     }
+    const _src = imgSrcs?.[collection]?.[id];
+    if (_src) {
+      setImgSrc(_src);
+      return;
+    }
     fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
       .then((res) => res.json())
       .then(({ data = {} }) => {
@@ -311,7 +306,12 @@ const Detail = ({ collectionAddress, detailId, setShowDetail }) => {
         setImgSrc(src);
       })
       .catch(console.error);
-  }, [collectionAddress, id, setImgSrc]);
+  }, [collectionAddress, id, imgSrcs, setImgSrc]);
+
+  useEffect(() => {
+    if (!_account) return;
+    setAccount(_account);
+  }, [_account, setAccount]);
 
   useEffect(() => {
     if (id > -1 && collectionAddress) {

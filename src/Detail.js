@@ -7,10 +7,8 @@ import TopBar from "./TopBar";
 import {
   BLOCKS_PER_DAY,
   KIDS_ADDRESS,
-  KIDS_IPFS_PREFIX,
   KIDS_OFFSET,
   PUPS_ADDRESS,
-  PUPS_IPFS_PREFIX,
   PUPS_OFFSET,
   STAKING_ADDRESS,
 } from "./constants";
@@ -116,6 +114,7 @@ const CloseButton = styled.button`
   }
 `;
 
+// TODO: detail isn't working when you click through from staking page
 const Detail = ({
   _account,
   collectionAddress,
@@ -124,7 +123,7 @@ const Detail = ({
   setShowDetail,
 }) => {
   const { id: _id } = useParams();
-  const id = parseInt(detailId || _id);
+  const id = parseInt(detailId ?? _id);
 
   const [account, setAccount] = useState("");
   const [error, setError] = useState("");
@@ -294,12 +293,14 @@ const Detail = ({
     } else if (collectionAddress === PUPS_ADDRESS) {
       collection = "bgp";
     }
-    const _src = imgSrcs?.[collection]?.[id];
+    const offset = collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET;
+    const offsetId = (id + offset) % 10_000;
+    const _src = imgSrcs?.[collection]?.[offsetId];
     if (_src) {
       setImgSrc(_src);
       return;
     }
-    fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
+    fetch(`${REACT_APP_API_URL}/images/${collection}/${offsetId}`)
       .then((res) => res.json())
       .then(({ data = {} }) => {
         const { src } = data;
@@ -408,9 +409,6 @@ const Detail = ({
     (parsedId +
       (collectionAddress === KIDS_ADDRESS ? KIDS_OFFSET : PUPS_OFFSET)) %
     10_000;
-
-  const ipfsPrefix =
-    collectionAddress === KIDS_ADDRESS ? KIDS_IPFS_PREFIX : PUPS_IPFS_PREFIX;
 
   return (
     <>

@@ -80,24 +80,26 @@ const Stake = () => {
   const [loading, setLoading] = useState(true);
 
   const getNfts = useCallback(async () => {
-    const _kids =
-      (await Moralis.Web3API.account.getNFTsForContract({
-        address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
-        token_address: "0xa5ae87B40076745895BB7387011ca8DE5fde37E0",
-      })) || {};
-    const _kidsIds = (_kids.result || []).map(({ token_id }) =>
-      parseInt(token_id)
-    );
-    setKidsIds(_kidsIds);
-    const _pups =
-      (await Moralis.Web3API.account.getNFTsForContract({
-        address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
-        token_address: "0x86e9C5ad3D4b5519DA2D2C19F5c71bAa5Ef40933",
-      })) || {};
-    const _pupsIds = (_pups.result || []).map(({ token_id }) =>
-      parseInt(token_id)
-    );
-    setPupsIds(_pupsIds);
+    // const _kids =
+    //   (await Moralis.Web3API.account.getNFTsForContract({
+    //     address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
+    //     token_address: "0xa5ae87B40076745895BB7387011ca8DE5fde37E0",
+    //   })) || {};
+    // const _kidsIds = (_kids.result || []).map(({ token_id }) =>
+    //   parseInt(token_id)
+    // );
+    // setKidsIds(_kidsIds);
+    // const _pups =
+    //   (await Moralis.Web3API.account.getNFTsForContract({
+    //     address: "0x521bC9Bb5Ab741658e48eF578D291aEe05DbA358",
+    //     token_address: "0x86e9C5ad3D4b5519DA2D2C19F5c71bAa5Ef40933",
+    //   })) || {};
+    // const _pupsIds = (_pups.result || []).map(({ token_id }) =>
+    //   parseInt(token_id)
+    // );
+    // setPupsIds(_pupsIds);
+    setKidsIds([0, 1]);
+    // setPupsIds([0, 1]);
   }, []);
 
   const getImages = useCallback(() => {
@@ -116,7 +118,9 @@ const Stake = () => {
     Promise.all(
       [...kidsIdsWithCollection, ...pupsIdsWithCollection].map(
         ({ id, collection }) => {
-          return fetch(`${REACT_APP_API_URL}/images/${collection}/${id}`)
+          const offset = collection === "bgk" ? KIDS_OFFSET : PUPS_OFFSET;
+          const offsetId = (id + offset) % 10_000;
+          return fetch(`${REACT_APP_API_URL}/images/${collection}/${offsetId}`)
             .then((res) => res.json())
             .then((data) => data);
         }
@@ -208,7 +212,7 @@ const Stake = () => {
               }#${offsetId}`;
               const _collectionAddress =
                 collection === "bgk" ? KIDS_ADDRESS : PUPS_ADDRESS;
-              const imgSrc = imgSrcs?.[collection]?.[id] || "";
+              const imgSrc = imgSrcs?.[collection]?.[offsetId] || "";
               return (
                 <ItemContainer key={`${collection}-${id}`}>
                   <ImageContainer>

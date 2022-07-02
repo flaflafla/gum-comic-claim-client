@@ -119,6 +119,9 @@ const Detail = ({
   _account,
   collectionAddress,
   detailId,
+  detailKidsSmartContract,
+  detailPupsSmartContract,
+  detailStakingSmartContract,
   imgSrcs,
   setShowDetail,
 }) => {
@@ -149,6 +152,7 @@ const Detail = ({
   const [imgSrc, setImgSrc] = useState("");
 
   const getRewards = useCallback(async () => {
+    debugger;
     if (bgContract < 0) return;
     const [rawRewards] = (await stakingSmartContract.methods
       .calculateRewards(account, [id], [bgContract])
@@ -308,6 +312,21 @@ const Detail = ({
       })
       .catch(console.error);
   }, [collectionAddress, id, imgSrcs, setImgSrc]);
+
+  useEffect(() => {
+    if (!detailKidsSmartContract) return;
+    setKidsSmartContract(detailKidsSmartContract);
+  }, [detailKidsSmartContract, setKidsSmartContract]);
+
+  useEffect(() => {
+    if (!detailPupsSmartContract) return;
+    setPupsSmartContract(detailPupsSmartContract);
+  }, [detailPupsSmartContract, setPupsSmartContract]);
+
+  useEffect(() => {
+    if (!detailStakingSmartContract) return;
+    setStakingSmartContract(detailStakingSmartContract);
+  }, [detailStakingSmartContract, setStakingSmartContract]);
 
   useEffect(() => {
     if (!_account) return;

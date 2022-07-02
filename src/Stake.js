@@ -195,6 +195,9 @@ const Stake = () => {
         <Detail
           _account={account}
           detailId={detailId}
+          detailKidsSmartContract={kidsSmartContract}
+          detailPupsSmartContract={pupsSmartContract}
+          detailStakingSmartContract={stakingSmartContract}
           collectionAddress={collectionAddress}
           setShowDetail={setShowDetail}
           imgSrcs={imgSrcs}
